@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pushbridge"
+version = "0.1.0"
+description = "Play the original Ableton Push (Push 1) with any MIDI software on Linux"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "Fancy Butler" }]
+requires-python = ">=3.10"
+dependencies = ["PySide6>=6.5"]
+keywords = ["ableton", "push", "midi", "controller", "pads", "scales", "linux"]
+classifiers = [
+  "Environment :: X11 Applications :: Qt",
+  "Operating System :: POSIX :: Linux",
+  "Topic :: Multimedia :: Sound/Audio :: MIDI",
+]
+
+[project.urls]
+Homepage = "https://github.com/fancy-butler/pushbridge"
+Issues = "https://github.com/fancy-butler/pushbridge/issues"
+
+[project.scripts]
+pushbridge = "pushbridge.app:main"
+
+[tool.setuptools.packages.find]
+include = ["pushbridge*"]
+
+[tool.setuptools.package-data]
+pushbridge = ["resources/icons/*"]

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Push Bridge
+GenericName=Pad controller
+Comment=Play the original Ableton Push with any MIDI software
+Exec=pushbridge
+Icon=pushbridge
+Terminal=false
+Categories=AudioVideo;Audio;Midi;
+Keywords=ableton;push;midi;pads;controller;scales;
+StartupWMClass=pushbridge
