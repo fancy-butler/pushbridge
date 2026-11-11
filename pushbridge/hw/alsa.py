@@ -17,7 +17,6 @@ import os
 import select
 import threading
 import traceback
-from dataclasses import dataclass
 from typing import Callable, Optional
 
 _lib = None
@@ -157,23 +156,7 @@ def decode(ev: SeqEvent) -> Optional[bytes]:
 
 
 # ---------------------------------------------------------------- discovery
-@dataclass
-class PortInfo:
-    client: int
-    port: int
-    client_name: str
-    name: str
-    caps: int
-
-    @property
-    def addr(self) -> tuple[int, int]:
-        return self.client, self.port
-
-
-def is_push1(client_name: str) -> bool:
-    n = client_name.lower()
-    return "push" in n and "push 2" not in n and "push2" not in n and "push 3" not in n \
-        and "push bridge" not in n
+from .ports import PortInfo, is_push1  # noqa: E402,F401  (re-exported)
 
 
 class Seq:
@@ -181,6 +164,9 @@ class Seq:
 
     on_push(bytes) gets everything the Push sends; on_app(bytes) everything apps
     send to the public port; on_change() fires when clients/ports come and go."""
+
+    multi_client = True          # the sequencer never locks a port to one app
+    release_on_handoff = False
 
     def __init__(self, client_name: str = "Push Bridge", port_name: str = "Push 1"):
         L = lib()

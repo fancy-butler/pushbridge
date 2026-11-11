@@ -3,10 +3,7 @@
 """System tray icon, start-at-login, and single-instance handling."""
 from __future__ import annotations
 
-import os
-import shutil
-import sys
-from pathlib import Path
+import getpass
 
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QAction
@@ -15,35 +12,9 @@ from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from . import theme
 
-AUTOSTART = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "autostart" / "pushbridge.desktop"
-SOCKET_NAME = f"pushbridge-{os.getuid()}"
+SOCKET_NAME = f"pushbridge-{getpass.getuser()}"
 
-
-# ------------------------------------------------------------------ autostart
-def _exec_line() -> str:
-    exe = shutil.which("pushbridge")
-    if exe:
-        return f"{exe} --minimized"
-    return f"{sys.executable} -m pushbridge --minimized"
-
-
-def autostart_enabled() -> bool:
-    return AUTOSTART.exists()
-
-
-def set_autostart(on: bool):
-    if on:
-        AUTOSTART.parent.mkdir(parents=True, exist_ok=True)
-        AUTOSTART.write_text(
-            "[Desktop Entry]\nType=Application\nName=Push Bridge\n"
-            "Comment=Ableton Push 1 front end\n"
-            f"Exec={_exec_line()}\nIcon=pushbridge\nTerminal=false\n"
-            "X-GNOME-Autostart-enabled=true\nX-KDE-autostart-after=panel\n")
-    else:
-        try:
-            AUTOSTART.unlink()
-        except FileNotFoundError:
-            pass
+from ..platform_util import autostart_enabled, set_autostart  # noqa: E402,F401  (re-exported)
 
 
 # ------------------------------------------------------------------ single instance

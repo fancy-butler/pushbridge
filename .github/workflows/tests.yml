@@ -1,7 +1,15 @@
-name: tests
-on: [push, pull_request]
+name: build
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: write
+
 jobs:
-  test:
+  linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -10,3 +18,59 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y libasound2t64 libegl1 libxkbcommon0
       - run: pip install PySide6 pytest
       - run: QT_QPA_PLATFORM=offscreen python -m pytest -q tests
+
+  windows:
+    runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install PySide6 pytest pyinstaller
+      - name: Tests
+        run: python -m pytest -q tests
+      - name: Smoke test (source, demo mode, real WinMM enumeration via Health)
+        shell: pwsh
+        run: |
+          python -c "from pushbridge.hw.winmm import in_names, out_names; print('in', in_names(), 'out', out_names())"
+          python -m pushbridge --demo --screenshot shot-source.png
+          if (!(Test-Path shot-source.png)) { throw "no screenshot from source run" }
+      - name: Build exe
+        run: pyinstaller packaging/windows/pushbridge.spec --noconfirm
+      - name: Smoke test (exe)
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\PushBridge\PushBridge.exe -ArgumentList "--demo","--screenshot","$PWD\shot-exe.png" -PassThru -Wait
+          if (!(Test-Path shot-exe.png)) { throw "exe didn't start (exit $($p.ExitCode))" }
+          $p = Start-Process dist\PushBridge\PushBridge.exe -ArgumentList "--screenshot","$PWD\shot-exe-hw.png","--page","3" -PassThru -Wait
+          if (!(Test-Path shot-exe-hw.png)) { throw "exe without --demo didn't start (exit $($p.ExitCode))" }
+      - name: Version
+        id: v
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path pyproject.toml -Pattern '^version = "(.*)"').Matches[0].Groups[1].Value
+          "version=$v" >> $env:GITHUB_OUTPUT
+      - name: Portable zip
+        shell: pwsh
+        run: Compress-Archive -Path dist\PushBridge\* -DestinationPath dist\PushBridge-${{ steps.v.outputs.version }}-windows-portable.zip
+      - name: Installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          & $iscc /DAppVersion=${{ steps.v.outputs.version }} packaging\windows\pushbridge.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PushBridge-windows
+          path: |
+            dist/*.zip
+            dist/*-setup.exe
+            shot-*.png
+      - name: Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.zip
+            dist/*-setup.exe

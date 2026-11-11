@@ -12,6 +12,7 @@ from .engine.engine import Engine
 from .hw import alsa
 from .hw import protocol as P
 from .hw.device import PushDevice
+from .platform_util import IS_WIN, live_running
 
 
 class Core:
@@ -23,7 +24,13 @@ class Core:
         self.seq = None
         self.midi_error = ""
         if not demo:
-            if not alsa.seq_available():
+            if IS_WIN:
+                try:
+                    from .hw.winmm import WinMidi
+                    self.seq = WinMidi(self.settings.get("win_out_port", ""), self.settings.get("win_in_port", ""))
+                except Exception as e:  # noqa: BLE001
+                    self.midi_error = f"Windows MIDI: {e}"
+            elif not alsa.seq_available():
                 self.midi_error = "ALSA sequencer (/dev/snd/seq) not available"
             else:
                 try:
@@ -93,11 +100,16 @@ class Core:
                     self.engine.passthrough = False
                 self.engine.standby = True
                 self.device.muted = True
+                if getattr(self.seq, "release_on_handoff", False):
+                    self.device.release()      # Windows: let go of the ports entirely
             else:
                 self.engine.standby = False
                 self.device.muted = False
                 self._handoff_reason = ""
-                if self.device.connected:
+                if self.device.released:
+                    self.device.reclaim()
+                    self._rescan.set()         # the watcher reopens and repaints it
+                elif self.device.connected:
                     self.device.init_hardware()
                 self.engine.refresh()
         self._handoff_reason = reason if on else ""
@@ -105,7 +117,10 @@ class Core:
         self.engine._changed()
 
     def other_drivers(self) -> list[str]:
-        """Apps (other than us and PipeWire's listener) connected straight to the Push."""
+        """Apps (other than us and PipeWire's listener) connected straight to the Push.
+        On Windows there's no way to see who has a port, so we look for Live itself."""
+        if IS_WIN:
+            return ["Ableton Live"] if live_running() else []
         if not (self.seq and self.device.connected):
             return []
         from .health import parse_seq_clients
@@ -115,7 +130,7 @@ class Core:
             info = clients.get(p.client, {}).get("ports", {}).get(p.port)
             if not info:
                 continue
-            # only apps that *send to* the Push can fight us; listeners are harmless
+            # only apps that *send to* the Push can fight us (Linux); listeners are harmless
             for c, _ in info["from"]:
                 if c in (self.seq.client, 0):
                     continue

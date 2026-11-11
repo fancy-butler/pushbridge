@@ -1,6 +1,6 @@
 # Push Bridge
 
-Play the **original (2013) Ableton Push** with any MIDI software on Linux: Bitwig, Reaper, Ardour, Surge XT, Vital, Noodle, a hardware synth on a USB-MIDI cable, or anything else that takes MIDI.
+Play the **original (2013) Ableton Push** with any MIDI software on Linux and Windows: Bitwig, Reaper, Ardour, Surge XT, Vital, Noodle, a hardware synth on a USB-MIDI cable, or anything else that takes MIDI.
 
 The Push 1 is a class-compliant USB-MIDI device, so Linux sees it out of the box. On its own, though, it's a dumb grid. Scales, in-key layouts, the display and the colours all came from Ableton Live's script. Push Bridge does that job instead:
 
@@ -66,6 +66,17 @@ There are no compiled extensions and no udev rule to install. MIDI goes straight
 
 Run `pushbridge`, or `pushbridge --demo` to try it without hardware.
 
+### Windows 10 / 11
+
+Download **PushBridge-…-windows-setup.exe** (or the portable zip) from [Releases](https://github.com/fancy-butler/pushbridge/releases) and run it. No drivers needed: the Push is class-compliant.
+
+Windows has no virtual MIDI ports, so Push Bridge reaches your software through a **loopback pair** (a one-time, two-minute setup; Health walks you through it):
+
+- **Windows 11**: open the **MIDI Settings** app (Windows MIDI Services Tools) › Loopback Endpoints › *Create New Loopback Endpoint Pair*. Name side A **Push Bridge App** and side B **Push Bridge**. In your DAW, pick **Push Bridge**. (The default app loopback pair also works; Push Bridge takes side A and you pick side B.)
+- **Windows 10**: install [loopMIDI](https://www.tobias-erichsen.de/software/loopmidi.html) and add two ports, **Push Bridge** and **Push Bridge Back**. In your DAW, use **Push Bridge** as the input and **Push Bridge Back** as the output (for lights).
+
+You can also pick the ports by hand under Knobs & buttons.
+
 ## Use it
 
 1. Start Push Bridge. The Push lights up and its display shows your scale.
@@ -85,9 +96,14 @@ Run `pushbridge`, or `pushbridge --demo` to try it without hardware.
 | **Shift** + knob | Fine adjust |
 | Everything else | A CC on channel 16 (configurable) for MIDI-learn, with light feedback |
 
-## Ableton Live on Linux
+## Ableton Live
 
-Live doesn't run natively on Linux. People run it under Wine with mixed results, and whether Live's Push 1 script works through Wine's MIDI is up to Wine. Push Bridge just makes sure it doesn't get in the way: when Live (or any other app) connects to the Push directly, Push Bridge steps aside automatically (Knobs & buttons › App), and the **Hand to Live** button does it by hand.
+Push Bridge gets out of Live's way:
+
+- **Windows**: while Ableton Live is running, Push Bridge lets go of the Push completely and takes it back when Live quits. With Windows 11's multi-client MIDI that's seamless. On Windows 10 only one app can open the Push at a time, so if Live started while Push Bridge was holding it, re-enable Push in Live's Link/Tempo/MIDI preferences (or press **Hand to Live** before starting Live).
+- **Linux**: Live doesn't run natively. People run it under Wine with mixed results, and whether Live's Push 1 script works through Wine's MIDI is up to Wine. When Live (or any other app) starts sending to the Push directly, Push Bridge steps aside automatically.
+
+Either way, **Hand to Live** on the Play page (or in the tray) does it by hand. The automatic behaviour can be switched off under Knobs & buttons › App.
 
 ## Headless
 

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import copy
 import json
-import os
 from pathlib import Path
 
-CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "pushbridge"
+from ..platform_util import config_dir
+
+CONFIG_DIR = config_dir()
 SETTINGS = CONFIG_DIR / "settings.json"
 
 DEFAULT_ENCODERS = [
@@ -49,7 +50,9 @@ DEFAULTS = {
     },
     # app
     "tray": True,
-    "auto_handoff": True,            # step aside when Ableton Live (Wine) connects to the Push
+    "auto_handoff": True,            # step aside when Ableton Live connects to / is running with the Push
+    "win_out_port": "",              # Windows: loopback port we send to ("" = automatic)
+    "win_in_port": "",               # Windows: loopback port we listen on
 }
 
 

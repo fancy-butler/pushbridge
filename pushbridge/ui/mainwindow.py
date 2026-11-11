@@ -16,6 +16,7 @@ from .. import theory as T
 from ..engine.engine import LAYOUT_LABEL, LAYOUTS
 from . import theme
 from .surface import Surface
+from ..platform_util import IS_WIN
 from .tray import Tray, autostart_enabled, set_autostart
 
 
@@ -446,12 +447,38 @@ class ControlsPage(QWidget):
         cl.addWidget(row("MIDI clock", self.clock))
         lay.addWidget(c)
 
+        if IS_WIN and core.seq is not None:
+            c, cl = card("Windows MIDI port for your software",
+                         "Windows has no virtual ports, so Push Bridge talks to your software through a loopback "
+                         "pair. Automatic finds “Push Bridge App” (Windows 11 MIDI Settings), loopMIDI's "
+                         "“Push Bridge” + “Push Bridge Back” (Windows 10), or the default app loopback.")
+            from ..hw.ports import is_push1
+            from ..hw.winmm import in_names, out_names
+            self.wout = QComboBox()
+            self.win_ = QComboBox()
+            for cb, names, key in ((self.wout, out_names(), "win_out_port"), (self.win_, in_names(), "win_in_port")):
+                cb.addItem("Automatic", "")
+                for n in names:
+                    if n and not is_push1(n):
+                        cb.addItem(n, n)
+                cb.setCurrentIndex(max(0, cb.findData(s.get(key, ""))))
+                cb.currentIndexChanged.connect(self._win_ports)
+            cl.addWidget(row("Push Bridge sends on", self.wout))
+            cl.addWidget(row("Push Bridge listens on", self.win_))
+            self.wlbl = QLabel()
+            self.wlbl.setObjectName("muted")
+            self.wlbl.setWordWrap(True)
+            cl.addWidget(self.wlbl)
+            self._win_label()
+            lay.addWidget(c)
+
         c, cl = card("App")
         self.auto = QCheckBox("Start at login (quietly, in the tray)")
         self.auto.setChecked(autostart_enabled())
         self.auto.toggled.connect(set_autostart)
         cl.addWidget(self.auto)
-        self.ah = QCheckBox("Step aside automatically when Ableton Live connects to the Push")
+        self.ah = QCheckBox("Step aside automatically while Ableton Live is running" if IS_WIN else
+                           "Step aside automatically when Ableton Live connects to the Push")
         self.ah.setToolTip("When another app starts sending to the Push directly (Live under Wine, Bitwig's "
                            "Push script...), Push Bridge goes quiet, then takes over again when it leaves.")
         self.ah.setChecked(bool(s.get("auto_handoff", True)))
@@ -466,6 +493,21 @@ class ControlsPage(QWidget):
     def _set(self, key, value, repaint=True):
         self.core.settings[key] = value
         self.core.changed(repaint)
+
+    def _win_ports(self, *_):
+        s = self.core.settings
+        s["win_out_port"] = self.wout.currentData() or ""
+        s["win_in_port"] = self.win_.currentData() or ""
+        seq = self.core.seq
+        seq.want_out, seq.want_in = s["win_out_port"], s["win_in_port"]
+        seq.open_app_ports()
+        self.core.changed(False)
+        self._win_label()
+
+    def _win_label(self):
+        seq = self.core.seq
+        self.wlbl.setText(f"In your DAW or synth, pick “{seq.daw_port}”." if seq.daw_port and not seq.app_error
+                          else (seq.app_error or "No loopback port found yet. Health has the two-minute setup."))
 
     def _cc(self, i, v):
         self.core.settings["encoders"][i]["cc"] = v

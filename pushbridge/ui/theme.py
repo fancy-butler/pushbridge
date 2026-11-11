@@ -39,7 +39,7 @@ def icon(name: str, color: str = TEXT, size: int = 20) -> QIcon:
 
 
 QSS = f"""
-* {{ font-family: "Inter", "Noto Sans", "Cantarell", sans-serif; font-size: 13px; color: {TEXT}; }}
+* {{ font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", "Noto Sans", "Cantarell", sans-serif; font-size: 13px; color: {TEXT}; }}
 QMainWindow, QWidget#root {{ background: {BG}; }}
 QWidget#sidebar {{ background: {PANEL}; border-right: 1px solid {LINE}; }}
 QToolButton#nav {{

@@ -32,18 +32,25 @@ class PushDevice:
         self.last_rx = 0.0
         self.last_tx = 0.0
         self.muted = False                 # True while Ableton Live (or another app) owns the Push
+        self.released = False              # Windows hand-off: Push ports closed so Live can open them
 
     # ------------------------------------------------------------ discovery
     def scan(self) -> bool:
         """Look for a Push 1 and hook it up.  Returns True if the state changed."""
         if self.seq is None:
             return False
-        from .alsa import is_push1
+        from .ports import is_push1
         found = [p for p in self.seq.ports() if is_push1(p.client_name) and p.client != self.seq.client]
         if found and not self.connected:
+            if self.released:
+                return False
+            try:
+                self.seq.connect_push(found)
+            except Exception as e:  # noqa: BLE001  (Windows: another app holds the Push)
+                self._status("error", str(e))
+                return False
             self.ports = found
             self.name = found[0].client_name
-            self.seq.connect_push(found)
             self.connected = True
             self._lcd_sent = [None] * P.LCD_LINES
             if not self.muted:
@@ -53,11 +60,24 @@ class PushDevice:
         if not found and self.connected:
             self.connected = False
             self.ports = []
+            if hasattr(self.seq, "disconnect_push"):
+                self.seq.disconnect_push()
             self._status("waiting", "Push unplugged")
             return True
         if not found and not self.connected and not self.ports:
             self._status("waiting", "Plug in the Push and switch it on")
         return False
+
+    def release(self):
+        """Close the Push completely (Windows: single-client MIDI stacks)."""
+        self.released = True
+        if self.connected and hasattr(self.seq, "disconnect_push"):
+            self.seq.disconnect_push()
+        self.connected = False
+        self.ports = []
+
+    def reclaim(self):
+        self.released = False
 
     def init_hardware(self):
         self._send(P.mode_live())

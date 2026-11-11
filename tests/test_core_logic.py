@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import copy
+import sys
+
+import pytest
 
 from pushbridge import theory as T
 from pushbridge.engine import settings as S
@@ -244,6 +247,7 @@ def test_proc_parse():
     assert c[128]["ports"][1]["to"] == [(129, 0)]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Linux hand-off reads /proc/asound")
 def test_scan_and_auto_handoff(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     from pushbridge import core as core_mod
@@ -279,3 +283,25 @@ def test_scan_and_auto_handoff(monkeypatch, tmp_path):
     monkeypatch.setattr(core_mod.alsa, "connections_text", lambda: PROC.replace(", 130:0", ""))
     c._auto_handoff()
     assert not c.engine.standby and seq.sent        # took it back and repainted
+
+
+def test_windows_app_port_choice():
+    from pushbridge.hw.winmm import pick_app_ports, short_len
+    ins = ["Ableton Push", "MIDIIN2 (Ableton Push)", "Push Bridge App", "Push Bridge"]
+    outs = ["Ableton Push", "MIDIOUT2 (Ableton Push)", "Push Bridge App", "Push Bridge"]
+    assert pick_app_ports(ins, outs) == ("Push Bridge App", "Push Bridge App", "Push Bridge")
+    ins2 = ["Ableton Push", "Push Bridge", "Push Bridge Back"]
+    outs2 = ["Ableton Push", "Push Bridge", "Push Bridge Back"]
+    o, i, _ = pick_app_ports(ins2, outs2)
+    assert (o, i) == ("Push Bridge", "Push Bridge Back")
+    ins3 = ["Default App Loopback (A)", "Default App Loopback (B)"]
+    assert pick_app_ports(ins3, ins3) == ("Default App Loopback (A)", "Default App Loopback (A)",
+                                          "Default App Loopback (B)")
+    assert pick_app_ports(["x"], ["y"]) == ("", "", "")
+    assert short_len(0xF8) == 1 and short_len(0xC0) == 2 and short_len(0x90) == 3
+
+
+def test_windows_push_ports_are_found_and_ours_excluded():
+    from pushbridge.hw.ports import is_push1
+    assert is_push1("MIDIIN2 (Ableton Push)")
+    assert not is_push1("Push Bridge App")

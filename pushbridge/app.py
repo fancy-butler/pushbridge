@@ -11,6 +11,23 @@ import threading
 from . import __version__
 
 
+def _log_when_windowless():
+    """A windowed Windows build has no console: send output to a log file instead."""
+    if sys.stdout is not None and sys.stderr is not None:
+        return
+    try:
+        from .platform_util import config_dir
+        d = config_dir()
+        d.mkdir(parents=True, exist_ok=True)
+        f = open(d / "pushbridge.log", "a", buffering=1, encoding="utf-8")
+        sys.stdout = sys.stdout or f
+        sys.stderr = sys.stderr or f
+    except OSError:
+        import io
+        sys.stdout = sys.stdout or io.StringIO()
+        sys.stderr = sys.stderr or io.StringIO()
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="pushbridge", description="Ableton Push 1 front end for Linux")
     ap.add_argument("--demo", action="store_true", help="no hardware: play the on-screen Push")
@@ -20,6 +37,7 @@ def main(argv=None) -> int:
     ap.add_argument("--page", type=int, default=0, help=argparse.SUPPRESS)
     ap.add_argument("--version", action="version", version=f"Push Bridge {__version__}")
     args = ap.parse_args(argv)
+    _log_when_windowless()
 
     if not args.headless:
         from PySide6.QtWidgets import QApplication

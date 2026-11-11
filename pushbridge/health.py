@@ -10,6 +10,44 @@ from dataclasses import dataclass
 
 from . import __version__
 from .hw import alsa
+from .platform_util import IS_WIN, live_running
+
+SETUP_WIN11 = ("Windows 11: open the MIDI Settings app (Windows MIDI Services Tools), go to Loopback "
+               "Endpoints › Create New Loopback Endpoint Pair, and name side A “Push Bridge App” and "
+               "side B “Push Bridge”.")
+SETUP_WIN10 = ("Windows 10: install loopMIDI (Tobias Erichsen) and add two ports, “Push Bridge” and "
+               "“Push Bridge Back”.")
+
+
+def _windows_ports(core, out: list) -> bool:
+    if core.seq is None:
+        out.append(Check("Windows MIDI", "bad", core.midi_error or "Couldn't load winmm.dll"))
+        return False
+    try:
+        from .hw.winmm import in_names, out_names
+        ins, outs = in_names(), out_names()
+        out.append(Check("Windows MIDI", "ok", f"{len(ins)} inputs, {len(outs)} outputs: " +
+                         ", ".join(sorted(set(ins + outs)))))
+    except Exception as e:  # noqa: BLE001
+        out.append(Check("Windows MIDI", "bad", str(e)))
+        return False
+    seq = core.seq
+    if seq.app_out_name and not seq.app_error:
+        out.append(Check("Port for your software", "ok",
+                         f"Push Bridge sends on “{seq.app_out_name}”"
+                         + (f" and listens on “{seq.app_in_name}”" if seq.app_in_name else "")
+                         + f". In your DAW or synth, pick “{seq.daw_port}”."))
+        if seq.app_in_name and seq.app_in_name == seq.app_out_name and "loopback" not in seq.app_in_name.lower() \
+                and not seq.app_in_name.lower().endswith(" app"):
+            out.append(Check("Echo risk", "warn",
+                             "Sending and listening on the same loopMIDI port echoes everything back. "
+                             "Use two ports. " + SETUP_WIN10))
+    else:
+        out.append(Check("Port for your software", "bad",
+                         (seq.app_error + ". " if seq.app_error else "") +
+                         "Windows has no virtual MIDI ports, so Push Bridge needs a loopback. " +
+                         SETUP_WIN11 + " " + SETUP_WIN10 + " Then press Run again."))
+    return True
 
 
 @dataclass
@@ -51,28 +89,51 @@ def run(core) -> list[Check]:
     if core.demo:
         out.append(Check("Demo mode", "info", "No hardware is used. Start without --demo to talk to a real Push."))
         return out
-    if not alsa.seq_available():
-        out.append(Check("ALSA sequencer", "bad",
-                         "/dev/snd/seq is missing. Load it with: sudo modprobe snd-seq"))
-        return out
-    out.append(Check("ALSA sequencer", "ok", "/dev/snd/seq is there"))
-    if core.seq is None:
-        out.append(Check("Push Bridge MIDI port", "bad", core.midi_error or "Couldn't open the sequencer"))
-        return out
-    out.append(Check("Push Bridge MIDI port", "ok",
-                     f"“Push Bridge › Push 1” is at {core.seq.address}. Pick it as a MIDI input in your software."))
+    if IS_WIN:
+        if not _windows_ports(core, out):
+            return out
+    else:
+        if not alsa.seq_available():
+            out.append(Check("ALSA sequencer", "bad",
+                             "/dev/snd/seq is missing. Load it with: sudo modprobe snd-seq"))
+            return out
+        out.append(Check("ALSA sequencer", "ok", "/dev/snd/seq is there"))
+        if core.seq is None:
+            out.append(Check("Push Bridge MIDI port", "bad", core.midi_error or "Couldn't open the sequencer"))
+            return out
+        out.append(Check("Push Bridge MIDI port", "ok",
+                         f"“Push Bridge › Push 1” is at {core.seq.address}. Pick it as a MIDI input in your software."))
     dev = core.device
+    if core.engine.standby:
+        who = getattr(core, "_handoff_reason", "")
+        out.append(Check("Handed off", "info",
+                         (who[5:] + " has the Push; Push Bridge takes it back when it's gone.")
+                         if who.startswith("auto:") else "You handed the Push off. Press “Take it back” on Play."))
+        if dev.released:
+            return out
     if not dev.connected:
         out.append(Check("Push found", "bad",
                          "No Ableton Push (1st gen) on the sequencer. Check it's powered (the USB bus alone "
                          "can't light everything; use the power supply), then the cable. `aconnect -l` should "
                          "list “Ableton Push”."))
         return out
-    out.append(Check("Push found", "ok", f"{dev.name}: " + ", ".join(f"{p.name} ({p.client}:{p.port})" for p in dev.ports)))
+    if IS_WIN:
+        names = list(dict.fromkeys(p.name for p in dev.ports))
+        out.append(Check("Push found", "ok", ", ".join(names)))
+    else:
+        out.append(Check("Push found", "ok", f"{dev.name}: " + ", ".join(f"{p.name} ({p.client}:{p.port})"
+                                                                          for p in dev.ports)))
     if dev.last_rx:
         out.append(Check("Push talking to us", "ok", f"Last message {time.time() - dev.last_rx:.0f} s ago"))
     else:
         out.append(Check("Push talking to us", "warn", "Nothing received yet. Hit a pad or turn a knob, then run this again."))
+    if IS_WIN:
+        if dev.identity:
+            out.append(Check("Firmware answered", "ok", f"Identity reply: {dev.identity}"))
+        live = live_running()
+        if live:
+            out.append(Check("Ableton Live", "info", ", ".join(live) + " is running"))
+        return out
     if dev.identity:
         out.append(Check("Firmware answered", "ok", f"Identity reply: {dev.identity}"))
     else:

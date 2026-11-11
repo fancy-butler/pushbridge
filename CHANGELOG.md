@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 (2026-11-10)
+- **Windows 10/11.** New WinMM backend (ctypes, no compiled extensions), installer and portable zip built by CI
+- Talks to your software through a loopback pair: Windows 11 MIDI Settings loopback, the default app loopback, or loopMIDI on Windows 10; picked automatically or by hand
+- Windows hand-off: lets go of the Push entirely while Ableton Live runs, takes it back after
+- Windows health checks with setup steps; start at login via the Run key; settings in %APPDATA%\PushBridge
+- Windowed builds log to pushbridge.log next to the settings
+
 ## 0.1.0 (2026-11-10)
 First version.
 - Notes mode: in-key / chromatic, 4ths / 3rds / sequential, 67 scales shared with Noodle, proper note spelling
