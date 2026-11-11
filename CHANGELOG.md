@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 (2026-11-10)
+- **Fix: the 64 pads didn't send anything.** Push Bridge now greets the Push the way Live does (welcome, Live mode, pad calibration, pad sensitivity, pad timing, aftertouch) using Live's own default values; says goodbye on quit
+- Pad response (Live's six firmware velocity curves) and pad sensitivity (Live's threshold) on the Pads & strip page
+
 ## 0.2.1 (2026-11-10)
 - Drums mode plays on its own channel, default 10 (General MIDI drums): FluidSynth and other GM synths play a kit with no setup
 - Hand off now lets go of the Push completely on Linux too, so Bitwig + DrivenByMoss (or anything that opens the raw device) can take it; renamed "Hand to Live" to "Hand off"

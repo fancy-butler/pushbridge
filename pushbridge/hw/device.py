@@ -19,6 +19,8 @@ class PushDevice:
         self.name = ""
         self.identity = ""
         self.full_rgb = True
+        self.pad_curve = 1                 # Live's "Log 1" default
+        self.pad_threshold = 0
         self.brightness = 1.0
         # mirrors
         self.pad_rgb: list[tuple[int, int, int]] = [(0, 0, 0)] * P.PADS
@@ -80,10 +82,19 @@ class PushDevice:
         self.released = False
 
     def init_hardware(self):
+        """What Live sends when it takes over a Push 1 (same order).  Without the
+        welcome + calibration + sensitivity the pads don't report hits."""
+        self._send(P.WELCOME)
         self._send(P.mode_live())
+        self._send(P.calibration())
+        self.send_pad_response()
+        self._send(P.pad_parameters())
         self._send(P.aftertouch_mode(True))
         self._send(P.IDENTITY_REQUEST)
         self.repaint()
+
+    def send_pad_response(self):
+        self._send(P.pad_sensitivity(self.pad_curve, self.pad_threshold))
 
     def _status(self, state: str, detail: str):
         if (state, detail) == getattr(self, "_last_status", None):
@@ -182,6 +193,7 @@ class PushDevice:
                 self.set_lcd(i, "")
             self.set_lcd(1, P.cells("", "", "", "Push Bridge", "", "is closed"))
             self.flush_lcd()
+            self._send(P.GOODBYE)
 
     def send_raw(self, msg: bytes):
         """Pass-through mode: an app talks to the Push directly."""

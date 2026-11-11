@@ -89,6 +89,43 @@ def sysex(*data: int) -> bytes:
     return bytes(SYSEX_HEAD + tuple(d & 0x7F for d in data) + (0xF7,))
 
 
+WELCOME = bytes(SYSEX_HEAD + (1, 1, 0xF7))      # "a host is here": Live sends this first
+GOODBYE = bytes(SYSEX_HEAD + (1, 0, 0xF7))
+
+
+def nibbles(value: int, count: int) -> tuple:
+    """Most significant nibble first (Push 1 sysex packs numbers 4 bits a byte)."""
+    return tuple((value >> s) & 0x0F for s in range((count - 1) * 4, -1, -4))
+
+
+def calibration() -> bytes:
+    """Pad calibration, values from Live's Push script (Sysex.CALIBRATION_SET)."""
+    data = nibbles(215, 4) + nibbles(1000, 4) + nibbles(200, 4) + nibbles(0, 4) + nibbles(200, 4)
+    return sysex(87, 0, 20, *data)
+
+
+# Live's velocity curves for the pads (firmware side), and its threshold range
+PAD_CURVES = [("Linear", 100000, 45000, 0), ("Log 1 (Live default)", 85000, 120000, 60000),
+              ("Log 2", 85000, 120000, 50000), ("Log 3", 100000, 120000, 50000),
+              ("Log 4", 130000, 120000, 50000), ("Log 5", 140000, 120000, 0)]
+
+
+def pad_sensitivity(curve: int = 1, threshold: int = 0) -> bytes:
+    """All 64 pads: on/off thresholds + gain + curve (Live's Settings.make_pad_parameters).
+    threshold -20 (most sensitive) .. +20 (least)."""
+    _, gain, c1, c2 = PAD_CURVES[max(0, min(len(PAD_CURVES) - 1, curve))]
+    t = (max(-20, min(20, threshold)) + 20) / 40
+    on = int((1 - t) * 10 + t * 410)
+    off = int((1 - t) * 10 + t * 370)
+    data = nibbles(off, 4) + nibbles(on, 4) + nibbles(gain, 8) + nibbles(c1, 8) + nibbles(c2, 8)
+    return sysex(93, 0, 32, *data)
+
+
+def pad_parameters(peak_sampling: int = 50, gate_time: int = 500, aftertouch_threshold: int = 0) -> bytes:
+    """Firmware 1.16+: pad timing and aftertouch threshold (Live's defaults)."""
+    return sysex(71, 0, 9, *(nibbles(peak_sampling, 4) + nibbles(gate_time, 4) + (aftertouch_threshold,)))
+
+
 def mode_live() -> bytes:
     """Put Push in its default ('Live') mode; we play the part of Live."""
     return sysex(0x62, 0, 1, 0)

@@ -1,6 +1,6 @@
-; Inno Setup script. Build after PyInstaller:  iscc /DAppVersion=0.2.1 packaging\windows\pushbridge.iss
+; Inno Setup script. Build after PyInstaller:  iscc /DAppVersion=0.2.2 packaging\windows\pushbridge.iss
 #ifndef AppVersion
-  #define AppVersion "0.2.1"
+  #define AppVersion "0.2.2"
 #endif
 
 [Setup]

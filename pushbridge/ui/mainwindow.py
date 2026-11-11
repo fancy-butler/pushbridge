@@ -329,6 +329,21 @@ class PadsPage(QWidget):
         self.strip.setCurrentIndex(max(0, self.strip.findData(s["strip"])))
         self.strip.currentIndexChanged.connect(lambda i: self._set("strip", self.strip.itemData(i), False))
         cl.addWidget(row("Touch strip", self.strip))
+        self.pcurve = QComboBox()
+        from ..hw.protocol import PAD_CURVES
+        for i, (name, *_r) in enumerate(PAD_CURVES):
+            self.pcurve.addItem(name, i)
+        self.pcurve.setCurrentIndex(int(s["pad_curve"]))
+        self.pcurve.currentIndexChanged.connect(lambda i: self._set("pad_curve", i, False))
+        cl.addWidget(row("Pad response", self.pcurve, "The Push's own pad curve (the same list as Live's). "
+                                                      "Push Bridge's velocity curve above is applied on top."))
+        self.pthr = QSlider(Qt.Horizontal)
+        self.pthr.setRange(-20, 20)
+        self.pthr.setValue(int(s["pad_threshold"]))
+        self.pthr.setInvertedAppearance(True)
+        self.pthr.sliderReleased.connect(lambda: self._set("pad_threshold", self.pthr.value(), False))
+        cl.addWidget(row("Pad sensitivity", self.pthr, "Right = triggers from a lighter touch "
+                                                      "(Live's Pad Threshold, -20 … +20)"))
         self.mc = QComboBox()
         self.mc.addItem("C3 (Ableton, Yamaha)", 3)
         self.mc.addItem("C4 (scientific, Roland)", 4)

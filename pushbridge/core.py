@@ -40,6 +40,8 @@ class Core:
         self.device = PushDevice(self.seq)
         self.device.full_rgb = bool(self.settings["full_rgb"])
         self.device.brightness = max(0.1, int(self.settings["brightness"]) / 100)
+        self.device.pad_curve = int(self.settings["pad_curve"])
+        self.device.pad_threshold = int(self.settings["pad_threshold"])
         self.last_out = 0.0
         self.engine = Engine(self.settings, self.device, self._to_apps)
         self.engine.on_midi_out = self._ping_out
@@ -193,6 +195,10 @@ class Core:
     # ------------------------------------------------------------ settings
     def changed(self, repaint: bool = True):
         """The UI changed a setting."""
+        curve, thr = int(self.settings["pad_curve"]), int(self.settings["pad_threshold"])
+        if (curve, thr) != (self.device.pad_curve, self.device.pad_threshold):
+            self.device.pad_curve, self.device.pad_threshold = curve, thr
+            self.device.send_pad_response()
         self.device.full_rgb = bool(self.settings["full_rgb"])
         self.device.brightness = max(0.1, int(self.settings["brightness"]) / 100)
         if repaint:

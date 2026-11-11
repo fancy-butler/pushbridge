@@ -44,6 +44,8 @@ DEFAULTS = {
     "clock": "playing",              # off | playing | always
     # look
     "full_rgb": True,
+    "pad_curve": 1,                  # firmware velocity curve (Live's list); 1 = Log 1, Live's default
+    "pad_threshold": 0,              # -20 most sensitive .. +20 least
     "brightness": 100,
     "colors": {
         "root": [40, 110, 255], "scale": [150, 150, 160], "out": [0, 0, 0],

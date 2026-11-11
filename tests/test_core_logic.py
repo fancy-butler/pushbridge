@@ -277,7 +277,7 @@ def test_scan_and_auto_handoff(monkeypatch, tmp_path):
     c.seq = seq
     c.device.seq = seq
     assert c.device.scan()
-    assert seq.sent[0] == P.mode_live()
+    assert seq.sent[0] == P.WELCOME and seq.sent[1] == P.mode_live()
     assert any(m[4] == 0x18 for m in seq.sent if m[0] == 0xF0 and len(m) > 5)   # LCD written
     monkeypatch.setattr(core_mod.alsa, "connections_text", lambda: PROC)
     c._auto_handoff()
@@ -322,3 +322,23 @@ def test_drums_default_to_channel_10():
     eng.handle(P.Event("button", P.BUTTONS["Note"], 127))
     eng.handle(P.Event("pad", 36, 100))
     assert out[-1][0] == 0x90
+
+
+def test_live_style_greeting():
+    seq = FakeSeq()
+    dev = PushDevice(seq)
+    dev.connected = True
+    dev.init_hardware()
+    assert seq.sent[0] == bytes((240, 71, 127, 21, 1, 1, 247))          # welcome
+    assert seq.sent[1] == bytes((240, 71, 127, 21, 98, 0, 1, 0, 247))   # Live mode
+    cal = seq.sent[2]
+    assert cal[4:7] == bytes((87, 0, 20)) and len(cal) == 4 + 3 + 20 + 1
+    assert list(cal[7:11]) == [0, 0, 13, 7]                              # 215
+    sens = seq.sent[3]
+    assert sens[4:7] == bytes((93, 0, 32)) and len(sens) == 4 + 3 + 32 + 1
+    # Live default: off 190, on 210, gain 85000, curve1 120000, curve2 60000
+    d = list(sens[7:-1])
+    val = lambda xs: int("".join(f"{x:x}" for x in xs), 16)
+    assert (val(d[0:4]), val(d[4:8]), val(d[8:16]), val(d[16:24]), val(d[24:32])) == (190, 210, 85000, 120000, 60000)
+    pp = seq.sent[4]
+    assert pp[4:7] == bytes((71, 0, 9)) and len(pp) == 4 + 3 + 9 + 1
