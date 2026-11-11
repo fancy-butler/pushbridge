@@ -79,7 +79,8 @@ def _layout() -> list[Item]:
     for i in range(P.PADS):
         x, y = i % 8, i // 8
         it.append(Item("pad", P.PAD_FIRST + i, QRectF(COL_PADS + x + 0.06, ROW_PADS + (7 - y) + 0.06, 0.88, 0.88)))
-    for k, (name, cc) in enumerate(P.TIME_DIV.items()):
+    # 1/32t at the top, 1/4 at the bottom, as printed on the Push
+    for k, (name, cc) in enumerate(reversed(list(P.TIME_DIV.items()))):
         it.append(Item("button", cc, QRectF(COL_SCENE, ROW_PADS + k + 0.2, 0.8, 0.6), name))
     for k, (a, b) in enumerate(RIGHT_PAIRS):
         y = ROW_UP - 0.05 + k * (8 + ROW_PADS - ROW_UP) / 10
