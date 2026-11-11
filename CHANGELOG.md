@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 (2026-11-10)
+- Drums mode plays on its own channel, default 10 (General MIDI drums): FluidSynth and other GM synths play a kit with no setup
+- Hand off now lets go of the Push completely on Linux too, so Bitwig + DrivenByMoss (or anything that opens the raw device) can take it; renamed "Hand to Live" to "Hand off"
+
 ## 0.2.0 (2026-11-10)
 - **Windows 10/11.** New WinMM backend (ctypes, no compiled extensions), installer and portable zip built by CI
 - Talks to your software through a loopback pair: Windows 11 MIDI Settings loopback, the default app loopback, or loopMIDI on Windows 10; picked automatically or by hand

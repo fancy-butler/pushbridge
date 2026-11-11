@@ -70,7 +70,7 @@ class Tray(QSystemTrayIcon):
                     lambda: (win.show_window(), win.go_page(win.health_page)))
         m.addAction(theme.icon("lightbulb", theme.TEXT, 16), "Test LEDs", win.core.test_leds)
         m.addAction(theme.icon("rotate-cw", theme.TEXT, 16), "Repaint the Push", win.core.repaint_hardware)
-        self.handoff_act = QAction(theme.icon("unplug", theme.TEXT, 16), "Hand the Push to Live", m)
+        self.handoff_act = QAction(theme.icon("unplug", theme.TEXT, 16), "Hand off the Push (Live, Bitwig…)", m)
         self.handoff_act.setCheckable(True)
         self.handoff_act.toggled.connect(lambda on: win.core.set_handoff(on) if on != win.core.engine.standby else None)
         m.addAction(self.handoff_act)

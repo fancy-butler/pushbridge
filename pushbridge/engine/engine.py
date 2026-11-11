@@ -65,7 +65,8 @@ class Engine:
 
     @property
     def channel(self) -> int:
-        return int(self.s["channel"]) & 0x0F
+        key = "drum_channel" if self.s["mode"] == "drums" else "channel"
+        return int(self.s.get(key, 9 if key == "drum_channel" else 0)) & 0x0F
 
     def _send(self, *b: int):
         self.out(bytes(b))

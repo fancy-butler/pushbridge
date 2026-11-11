@@ -166,7 +166,7 @@ class Seq:
     send to the public port; on_change() fires when clients/ports come and go."""
 
     multi_client = True          # the sequencer never locks a port to one app
-    release_on_handoff = False
+    release_on_handoff = True    # unsubscribe too, so apps that open the raw device can get it
 
     def __init__(self, client_name: str = "Push Bridge", port_name: str = "Push 1"):
         L = lib()
@@ -225,11 +225,21 @@ class Seq:
 
     def connect_push(self, ports: list[PortInfo]):
         L = lib()
+        self._linked = list(ports)
         for p in ports:
             if p.caps & CAP_READ:
                 L.snd_seq_connect_from(self._seq, self.link, p.client, p.port)
             if p.caps & CAP_WRITE:
                 L.snd_seq_connect_to(self._seq, self.link, p.client, p.port)
+
+    def disconnect_push(self):
+        L = lib()
+        for p in getattr(self, "_linked", []):
+            if p.caps & CAP_READ:
+                L.snd_seq_disconnect_from(self._seq, self.link, p.client, p.port)
+            if p.caps & CAP_WRITE:
+                L.snd_seq_disconnect_to(self._seq, self.link, p.client, p.port)
+        self._linked = []
 
     # -------------------------------------------------- output
     def _send(self, port: int, msg: bytes):

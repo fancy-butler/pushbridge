@@ -261,8 +261,13 @@ def test_scan_and_auto_handoff(monkeypatch, tmp_path):
             return [PortInfo(24, 0, "Ableton Push", "Ableton Push Live Port", 0x63),
                     PortInfo(24, 1, "Ableton Push", "Ableton Push User Port", 0x63)]
 
+        release_on_handoff = True
+
         def connect_push(self, ports):
             self.connected = ports
+
+        def disconnect_push(self):
+            self.connected = []
 
         def to_apps(self, m):
             pass
@@ -276,13 +281,14 @@ def test_scan_and_auto_handoff(monkeypatch, tmp_path):
     assert any(m[4] == 0x18 for m in seq.sent if m[0] == 0xF0 and len(m) > 5)   # LCD written
     monkeypatch.setattr(core_mod.alsa, "connections_text", lambda: PROC)
     c._auto_handoff()
-    assert c.engine.standby and c.device.muted
+    assert c.engine.standby and c.device.muted and c.device.released and seq.connected == []
     seq.sent.clear()
     c.engine.handle(P.Event("pad", 36, 100))
     assert seq.sent == []
     monkeypatch.setattr(core_mod.alsa, "connections_text", lambda: PROC.replace(", 130:0", ""))
     c._auto_handoff()
-    assert not c.engine.standby and seq.sent        # took it back and repainted
+    assert not c.engine.standby
+    assert c.device.scan() and seq.connected and seq.sent     # reopened and repainted
 
 
 def test_windows_app_port_choice():
@@ -305,3 +311,14 @@ def test_windows_push_ports_are_found_and_ours_excluded():
     from pushbridge.hw.ports import is_push1
     assert is_push1("MIDIIN2 (Ableton Push)")
     assert not is_push1("Push Bridge App")
+
+
+def test_drums_default_to_channel_10():
+    eng, dev, seq, out = make()
+    eng.handle(P.Event("button", P.BUTTONS["Note"], 127))
+    eng.handle(P.Event("pad", 36, 100))
+    assert out[-1] == bytes((0x99, 36, 100))
+    eng.handle(P.Event("pad_off", 36, 0))
+    eng.handle(P.Event("button", P.BUTTONS["Note"], 127))
+    eng.handle(P.Event("pad", 36, 100))
+    assert out[-1][0] == 0x90

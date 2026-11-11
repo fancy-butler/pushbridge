@@ -7,7 +7,7 @@ The Push 1 is a class-compliant USB-MIDI device, so Linux sees it out of the box
 - **Notes mode** with Live-style **in-key** or **chromatic** layouts (4ths, 3rds or sequential), with root pads in blue and in-scale pads in white. When you press a note, every pad with that pitch lights up.
 - **67 scales**, the same list as Noodle. Klezmer names sit beside the textbook ones (Freygish / Ahava Rabboh, Mi Sheberach, Adonai Malach, Magen Avot), along with Irish/Scottish modes, jazz, harmonic-minor modes, maqam and Balkan approximations, Japanese, Indian thaat and more. Notes are spelled properly for the key (D Freygish is D E♭ F♯ G A B♭ C).
 - **Scales page on the Push itself.** Press **Scales**: the top button row picks C G D A E B and the row above the pads picks F B♭ E♭ A♭ D♭ G♭, as on Live. Any knob scrolls through scales. The last two top buttons switch the layout and In Key / Chromatic.
-- **Drums mode** (press **Note**): four colour-coded 4×4 blocks starting at C1 (36), so GM kits land where you'd expect. Octave buttons move by 16.
+- **Drums mode** (press **Note**): four colour-coded 4×4 blocks starting at C1 (36), on **channel 10** (the General MIDI drum channel), so any GM synth plays a kit straight away. Octave buttons move by 16.
 - **Live chord names** on the Push's LCD while you play (Gm, Cmaj7, D7/F♯ …).
 - **Pressure**: polyphonic or channel aftertouch. The **touch strip** does pitch bend or mod wheel.
 - **Accent** (full velocity), **velocity curves** (soft / hard / fixed).
@@ -96,14 +96,16 @@ You can also pick the ports by hand under Knobs & buttons.
 | **Shift** + knob | Fine adjust |
 | Everything else | A CC on channel 16 (configurable) for MIDI-learn, with light feedback |
 
-## Ableton Live
+## Ableton Live, Bitwig and other Push software
 
 Push Bridge gets out of Live's way:
 
-- **Windows**: while Ableton Live is running, Push Bridge lets go of the Push completely and takes it back when Live quits. With Windows 11's multi-client MIDI that's seamless. On Windows 10 only one app can open the Push at a time, so if Live started while Push Bridge was holding it, re-enable Push in Live's Link/Tempo/MIDI preferences (or press **Hand to Live** before starting Live).
+- **Windows**: while Ableton Live is running, Push Bridge lets go of the Push completely and takes it back when Live quits. With Windows 11's multi-client MIDI that's seamless. On Windows 10 only one app can open the Push at a time, so if Live started while Push Bridge was holding it, re-enable Push in Live's Link/Tempo/MIDI preferences (or press **Hand off** before starting Live).
 - **Linux**: Live doesn't run natively. People run it under Wine with mixed results, and whether Live's Push 1 script works through Wine's MIDI is up to Wine. When Live (or any other app) starts sending to the Push directly, Push Bridge steps aside automatically.
 
-Either way, **Hand to Live** on the Play page (or in the tray) does it by hand. The automatic behaviour can be switched off under Knobs & buttons › App.
+The same goes for **Bitwig with the DrivenByMoss extension**, which has full Push 1 support (clip launching, sequencer, device pages, display). There's no need to quit Push Bridge for it.
+
+Either way, **Hand off** on the Play page (or in the tray) lets go of the Push by hand, and **Take it back** reclaims it. The automatic behaviour can be switched off under Knobs & buttons › App.
 
 ## Headless
 

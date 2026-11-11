@@ -27,7 +27,8 @@ DEFAULTS = {
     "in_key": True,
     "octave": 0,                     # bottom-left pad = root + 36 + 12 * octave
     "drum_base": 36,
-    "channel": 0,                    # 0-15
+    "channel": 0,                    # 0-15, notes mode
+    "drum_channel": 9,               # drums mode: channel 10, the General MIDI drum channel
     "velocity_curve": "linear",      # linear | soft | hard | fixed
     "fixed_velocity": 100,
     "aftertouch": "poly",            # poly | channel | off

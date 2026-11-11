@@ -171,7 +171,10 @@ class PlayPage(QWidget):
         self.chan = QSpinBox()
         self.chan.setRange(1, 16)
         self.chan.setPrefix("Ch ")
-        self.chan.valueChanged.connect(lambda v: self._set("channel", v - 1))
+        self.chan.setToolTip("MIDI channel for this mode. Drums default to channel 10, "
+                             "the General MIDI drum channel, so GM synths play a kit straight away.")
+        self.chan.valueChanged.connect(
+            lambda v: self._set("drum_channel" if self.core.settings["mode"] == "drums" else "channel", v - 1, False))
         self.tempo = QDoubleSpinBox()
         self.tempo.setRange(20, 300)
         self.tempo.setDecimals(1)
@@ -187,10 +190,11 @@ class PlayPage(QWidget):
         g.addWidget(self.find, 0, 3)
         g.addWidget(self.layout_cb, 0, 4)
         g.addWidget(self.in_key, 0, 5)
-        self.handoff = QPushButton(theme.icon("unplug", theme.TEXT, 16), "Hand to Live")
+        self.handoff = QPushButton(theme.icon("unplug", theme.TEXT, 16), "Hand off")
         self.handoff.setCheckable(True)
-        self.handoff.setToolTip("Step aside so Ableton Live (or anything that drives the Push directly) has it. "
-                                "Push Bridge also does this by itself when Live connects, and takes it back after.")
+        self.handoff.setToolTip("Let go of the Push so Ableton Live, or Bitwig with DrivenByMoss, can drive it "
+                                "directly. Push Bridge also does this by itself when it sees them, and takes "
+                                "the Push back afterwards.")
         self.handoff.toggled.connect(lambda on: None if self._syncing else self.core.set_handoff(on))
         g.addLayout(octv, 1, 0, 1, 2)
         g.addWidget(self.handoff, 1, 5)
@@ -256,12 +260,12 @@ class PlayPage(QWidget):
             down, up = e.octave_range()
             self.oct_down.setEnabled(down)
             self.oct_up.setEnabled(up)
-            self.chan.setValue(int(s["channel"]) + 1)
+            self.chan.setValue(e.channel + 1)
             if abs(self.tempo.value() - float(s["tempo"])) > 0.05:
                 self.tempo.setValue(float(s["tempo"]))
             self.play.setChecked(e.playing)
             self.handoff.setChecked(e.standby)
-            self.handoff.setText("Take it back" if e.standby else "Hand to Live")
+            self.handoff.setText("Take it back" if e.standby else "Hand off")
             self.play.setText("Stop" if e.playing else "Play")
         finally:
             self._syncing = False
@@ -278,7 +282,7 @@ class PlayPage(QWidget):
             who = getattr(self.core, "_handoff_reason", "")
             txt, col = "Handed off", theme.ACCENT_2
             detail = ("Automatically: " + who[5:] + " is driving the Push") if who.startswith("auto:") else \
-                "You handed the Push to Live"
+                "You handed the Push off"
         self.pill.setText(txt)
         self.pill.setToolTip(detail)
         self.pill.setStyleSheet(f"background:{col}22; color:{col};")

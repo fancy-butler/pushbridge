@@ -121,12 +121,16 @@ class Core:
         On Windows there's no way to see who has a port, so we look for Live itself."""
         if IS_WIN:
             return ["Ableton Live"] if live_running() else []
-        if not (self.seq and self.device.connected):
+        if not self.seq:
             return []
+        from .hw.ports import is_push1
         from .health import parse_seq_clients
         clients = parse_seq_clients(alsa.connections_text())
         names = set()
-        for p in self.device.ports:
+        # look at the Push's ports even while we've let go of them
+        push_ports = self.device.ports or [p for p in self.seq.ports()
+                                           if is_push1(p.client_name) and p.client != self.seq.client]
+        for p in push_ports:
             info = clients.get(p.client, {}).get("ports", {}).get(p.port)
             if not info:
                 continue
